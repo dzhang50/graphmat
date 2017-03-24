@@ -52,8 +52,8 @@ APPS=$(BINDIR)/graph_converter $(BINDIR)/PageRank $(BINDIR)/IncrementalPageRank 
 
 all: $(APPS)
 
-$(BINDIR)/% : $(SRCDIR)/%.cpp $(DEPS)  
-	$(MPICXX) -cxx=$(CXX) $(CXX_OPTIONS) -o $@ $< $(LD_OPTIONS)
+$(BINDIR)/% : $(SRCDIR)/%.cpp $(INCLUDEDIR)/easyperf.c $(DEPS)
+	$(MPICXX) -cxx=$(CXX) $(CXX_OPTIONS) -o $@ $< $(INCLUDEDIR)/easyperf.c $(LD_OPTIONS)
 
 # --- Test --- #
 test: $(TESTBINDIR)/test 
