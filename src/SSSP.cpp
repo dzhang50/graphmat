@@ -32,6 +32,7 @@
 #include <climits>
 #include <cfloat>
 
+#include "/home/dzhang/zsim/misc/hooks/zsim_hooks.h"
 #include "GraphMatRuntime.h"
 
 //typedef unsigned char distance_type;
@@ -102,7 +103,11 @@ template<class edge_type>
 void run_sssp(const char* filename, int v) {
 
   GraphMat::Graph<SSSP_vertex_type, edge_type> G;
-  G.ReadMTX(filename); 
+  GraphMat::edgelist_t<edge_type> E;
+  // Loads with <nvertices nvertices nedges> header
+  GraphMat::load_edgelist(filename, &E, false, true, true);
+  G.ReadEdgelist(E);
+  E.clear();
 
   SSSP<edge_type> b;
   auto tmp_ds = GraphMat::graph_program_init(b, G);
@@ -120,7 +125,9 @@ void run_sssp(const char* filename, int v) {
   struct timeval start, end;
   gettimeofday(&start, 0);
 
+  zsim_roi_begin();
   GraphMat::run_graph_program(&b, G, GraphMat::UNTIL_CONVERGENCE, &tmp_ds);
+  zsim_roi_end();
 
   gettimeofday(&end, 0);
   printf("Time = %.3f ms \n", (end.tv_sec-start.tv_sec)*1e3+(end.tv_usec-start.tv_usec)*1e-3);
@@ -147,7 +154,7 @@ int main (int argc, char* argv[]) {
   const char* input_filename = argv[1];
 
   if (argc < 3) {
-    printf("Correct format: %s A.mtx source_vertex (1-based index)\n", argv[0]);
+    printf("Correct format: %s A.gmat source_vertex (1-based index)\n", argv[0]);
     return 0;
   }
 

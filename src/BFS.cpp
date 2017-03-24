@@ -33,6 +33,8 @@
 #include <climits>
 #include <ostream>
 
+#include "/home/dzhang/zsim/misc/hooks/zsim_hooks.h"
+
 typedef unsigned int depth_type;
 
 depth_type MAX_DIST = std::numeric_limits<depth_type>::max();
@@ -109,7 +111,11 @@ void reachable_or_not(BFSD2* v, int *result, void* params=nullptr) {
 
 void run_bfs(char* filename, int v) {
   GraphMat::Graph<BFSD2> G;
-  G.ReadMTX(filename); 
+  GraphMat::edgelist_t<int> E;
+  // Loads with <nvertices nvertices nedges> header
+  GraphMat::load_edgelist(filename, &E, false, true, true);
+  G.ReadEdgelist(E);
+  E.clear();
   
   for(int i = 0 ; i < G.getNumberOfVertices() ; i++)
   {
@@ -132,7 +138,9 @@ void run_bfs(char* filename, int v) {
   struct timeval start, end;
   gettimeofday(&start, 0);
 
+  zsim_roi_begin();
   GraphMat::run_graph_program(&b, G, GraphMat::UNTIL_CONVERGENCE, &b_tmp);
+  zsim_roi_end();
 
   gettimeofday(&end, 0);
   printf("Time = %.3f ms \n", (end.tv_sec-start.tv_sec)*1e3+(end.tv_usec-start.tv_usec)*1e-3);
