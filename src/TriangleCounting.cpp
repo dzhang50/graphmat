@@ -34,7 +34,9 @@
 #include <algorithm>
 #include <assert.h>
 #include <boost/serialization/vector.hpp>
+#include <iostream>
 
+#include "/home/dzhang/zsim/misc/hooks/zsim_hooks.h"
 
 class TC : public GraphMat::Serializable {
   public:
@@ -130,9 +132,27 @@ class CountTriangles: public GraphMat::GraphProgram<TC, int, TC> {
     int it1_end = message.neighbors.size();
     int it2_end = vertexprop.neighbors.size();
 
+    /*
+    std::cout << "Vertexprop id: " << vertexprop.id-1 << ", message id: " << message.id-1 << "\n";
+    std::cout << "Vertexprop neighbors: ";
+    for(int i = 0; i < vertexprop.neighbors.size(); i++)
+        std::cout << vertexprop.neighbors[i]-1 << " ";
+    std::cout << "\n";
+    std::cout << "Message neighbors: ";
+    for(int i = 0; i < message.neighbors.size(); i++)
+        std::cout << message.neighbors[i]-1 << " ";
+    std::cout << "\n";
+    */
+
+    // Only check one of the two pairs
+    if(message.id < vertexprop.id)
+        return;
+
+    // To avoid counting the same triangle 3 (or 6) times, enforce vertexprop.id  < message.id < shared_neighbor
     while (it1 != it1_end && it2 != it2_end){
       if (message.neighbors[it1] == vertexprop.neighbors[it2]) {
-        res++;
+        if(message.id < vertexprop.neighbors[it2])
+          res++;
         ++it1; ++it2;
       } else if (message.neighbors[it1] < vertexprop.neighbors[it2]) {
         ++it1;
@@ -140,6 +160,7 @@ class CountTriangles: public GraphMat::GraphProgram<TC, int, TC> {
         ++it2;
       }
     } 
+    //std::cout << "Res: " <<res<<"\n\n";
     return;
   }
 
@@ -161,8 +182,12 @@ void return_triangles(TC* v, unsigned long int* out, void* params) {
 
 void run_triangle_counting(char* filename) {
   GraphMat::Graph<TC> G;
-  G.ReadMTX(filename); 
-  
+  GraphMat::edgelist_t<int> E;
+  // Loads with <nvertices nvertices nedges> header
+  GraphMat::load_edgelist(filename, &E, false, true, true);
+  G.ReadEdgelist(E);
+  E.clear();
+
   int numberOfVertices = G.getNumberOfVertices();
   GetNeighbors gn;
   CountTriangles ct;
@@ -183,8 +208,10 @@ void run_triangle_counting(char* filename) {
 
   GraphMat::run_graph_program(&gn, G, 1, &gn_tmp);
 
+  zsim_roi_begin();
   GraphMat::run_graph_program(&ct, G, 1, &ct_tmp);
-  
+  zsim_roi_end();
+
   gettimeofday(&end, 0);
   printf("Time = %.3f ms \n", (end.tv_sec-start.tv_sec)*1e3+(end.tv_usec-start.tv_usec)*1e-3);
 
