@@ -46,6 +46,13 @@
 #include "GraphProgram.h"
 #include "SPMV.h"
 
+#define EASYPERF
+
+#ifdef EASYPERF
+#include <cstdint>
+#include "easyperf.h"
+#endif
+
 namespace GraphMat {
 
 const int UNTIL_CONVERGENCE = -1;
@@ -125,6 +132,14 @@ void run_graph_program(GraphProgram<T,U,V,E>* gp, Graph<V,E>& g, int iterations=
   #ifdef __TIMING
   printf("Nvertices = %d \n", g.getNumberOfVertices());
   #endif
+
+#ifdef EASYPERF
+  perf_init(4, EV_CYCLES, EV_INSTR, EV_BRANCH, EV_BRANCH_MISS);
+  //perf_init(2, EV_CYCLES | PERFMON_EVENTSEL_OS | PERFMON_EVENTSEL_USR, EV_INSTR | PERFMON_EVENTSEL_OS | PERFMON_EVENTSEL_USR);
+  //perf_init(2, EV_CYCLES | PERFMON_EVENTSEL_USR, EV_INSTR | PERFMON_EVENTSEL_USR);
+  uint64_t ezStart[4], ezEnd[4];
+  perf_read_all(ezStart);
+#endif
 
   gettimeofday(&init_end, 0);
 
@@ -259,6 +274,12 @@ void run_graph_program(GraphProgram<T,U,V,E>* gp, Graph<V,E>& g, int iterations=
     delete px;
     delete py;
   }
+#ifdef EASYPERF
+    perf_read_all(ezEnd);
+    printf("\nEasyperf: Cycles: %10lu  Instrs: %10lu\n\n", ezEnd[0]-ezStart[0], ezEnd[1]-ezStart[1]);
+    printf("L2 refs: %lu, misses: %lu, miss ratio: %f\n", (ezEnd[2]-ezStart[2]), (ezEnd[3]-ezStart[3]), double(ezEnd[3]-ezStart[3])/double(ezEnd[2]-ezStart[2]));
+    perf_close();
+#endif
 
   gettimeofday(&clear_end, 0);
   #ifdef __TIMING

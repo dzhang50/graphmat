@@ -1,5 +1,5 @@
-MPICXX=mpiicpc
-CXX=icpc
+MPICXX=mpic++
+CXX=g++
 
 SRCDIR=./src
 INCLUDEDIR=./include
@@ -51,7 +51,7 @@ DEPS = $(include_headers) $(dist_primitives_headers)
 APPS=$(BINDIR)/graph_converter $(BINDIR)/PageRank $(BINDIR)/IncrementalPageRank $(BINDIR)/BFS $(BINDIR)/SSSP $(BINDIR)/LDA $(BINDIR)/SGD $(BINDIR)/TriangleCounting #$(BINDIR)/DS
 
 all: $(APPS)
-	
+
 $(BINDIR)/% : $(SRCDIR)/%.cpp $(DEPS)  
 	$(MPICXX) -cxx=$(CXX) $(CXX_OPTIONS) -o $@ $< $(LD_OPTIONS)
 
