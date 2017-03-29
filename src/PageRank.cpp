@@ -28,7 +28,11 @@
 * ******************************************************************************/
 /* Narayanan Sundaram (Intel Corp.)
  * ******************************************************************************/
+#include <iostream>
+#include <iomanip>
 #include "GraphMatRuntime.h"
+
+#include "/home/dzhang/zsim/misc/hooks/zsim_hooks.h"
 
 
 class PR {
@@ -37,11 +41,12 @@ class PR {
     int degree;
   public:
     PR() {
-      pagerank = 0.3;
+      pagerank = 1-0.85;
       degree = 0;
     }
     int operator!=(const PR& p) {
-      return (fabs(p.pagerank-pagerank)>1e-5);
+        //return (fabs(p.pagerank-pagerank)>1e-5);
+        return (fabs(p.pagerank-pagerank)>0.0001);
     }
     friend std::ostream &operator<<(std::ostream &outstream, const PR & val)
     {
@@ -85,7 +90,7 @@ class PageRank : public GraphMat::GraphProgram<float, float, PR, E> {
 
   public:
 
-  PageRank(float a=0.3) {
+  PageRank(float a) {
     alpha = a;
     this->activity = GraphMat::ALL_VERTICES;
     this->process_message_requires_vertexprop = false;
@@ -106,7 +111,8 @@ class PageRank : public GraphMat::GraphProgram<float, float, PR, E> {
     return true;
   }
   void apply(const float& message_out, PR& vertexprop) {
-    vertexprop.pagerank = alpha + (1.0-alpha)*message_out; //non-delta update
+      //vertexprop.pagerank = alpha + (1.0-alpha)*message_out; //non-delta update
+      vertexprop.pagerank = (1.0-alpha) + alpha*message_out; //non-delta update
   }
 
 };
@@ -116,11 +122,15 @@ template <class edge>
 void run_pagerank(const char* filename) {
 
   GraphMat::Graph<PR, edge> G;
-  PageRank<edge> pr;
+  PageRank<edge> pr(0.85);
   Degree<PR, edge> dg;
 
  
-  G.ReadMTX(filename); 
+  GraphMat::edgelist_t<edge> E;
+  // Loads with <nvertices nvertices nedges> header
+  GraphMat::load_edgelist(filename, &E, false, true, true);
+  G.ReadEdgelist(E);
+  E.clear();
 
   auto dg_tmp = GraphMat::graph_program_init(dg, G);
 
@@ -141,7 +151,10 @@ void run_pagerank(const char* filename) {
   gettimeofday(&start, 0);
 
   G.setAllActive();
+
+  zsim_roi_begin();
   GraphMat::run_graph_program(&pr, G, GraphMat::UNTIL_CONVERGENCE, &pr_tmp);
+  zsim_roi_end();
   
   gettimeofday(&end, 0);
   time = (end.tv_sec-start.tv_sec)*1e3+(end.tv_usec-start.tv_usec)*1e-3;
@@ -149,10 +162,22 @@ void run_pagerank(const char* filename) {
 
   GraphMat::graph_program_clear(pr_tmp);
 
+  std::ofstream out("tmp");
+
   MPI_Barrier(MPI_COMM_WORLD);
   for (int i = 1; i <= std::min((unsigned long long int)25, (unsigned long long int)G.getNumberOfVertices()); i++) { 
     if (G.vertexNodeOwner(i)) {
       printf("%d : %d %f\n", i, G.getVertexproperty(i).degree, G.getVertexproperty(i).pagerank);
+    }
+    fflush(stdout);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  out << std::setprecision(3) << std::fixed;
+  for (int i = 1; i <= G.getNumberOfVertices(); i++) {
+    if (G.vertexNodeOwner(i)) {
+      out << i-1 << "," << G.getVertexproperty(i).pagerank << "\n";
     }
     fflush(stdout);
     MPI_Barrier(MPI_COMM_WORLD);
