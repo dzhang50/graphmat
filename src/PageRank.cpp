@@ -46,7 +46,7 @@ class PR {
     }
     int operator!=(const PR& p) {
         //return (fabs(p.pagerank-pagerank)>1e-5);
-        return (fabs(p.pagerank-pagerank)>0.0001);
+        return (fabs(p.pagerank-pagerank)>0.01);
     }
     friend std::ostream &operator<<(std::ostream &outstream, const PR & val)
     {
