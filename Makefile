@@ -1,3 +1,5 @@
+#MPICXX=mpiicpc
+#CXX=icpc
 MPICXX=mpic++
 CXX=g++
 
@@ -44,7 +46,7 @@ LD_OPTIONS += -lboost_serialization
 # --- Apps --- #
 SOURCES = $(wildcard $(SRCDIR)/*.cpp)
 
-include_headers = $(wildcard $(INCLUDEDIR)/*.h)
+qinclude_headers = $(wildcard $(INCLUDEDIR)/*.h)
 dist_primitives_headers = $(wildcard $(DIST_PRIMITIVES_PATH)/*.h $(DIST_PRIMITIVES_PATH)/*/*.h)
 DEPS = $(include_headers) $(dist_primitives_headers)
 
@@ -52,7 +54,7 @@ APPS=$(BINDIR)/graph_converter $(BINDIR)/PageRank $(BINDIR)/IncrementalPageRank 
 
 all: $(APPS)
 
-$(BINDIR)/% : $(SRCDIR)/%.cpp $(INCLUDEDIR)/easyperf.c $(DEPS)
+$(BINDIR)/% : $(SRCDIR)/%.cpp $(INCLUDEDIR)/easyperf.c $(DEPS)  
 	$(MPICXX) -cxx=$(CXX) $(CXX_OPTIONS) -o $@ $< $(INCLUDEDIR)/easyperf.c $(LD_OPTIONS)
 
 # --- Test --- #
