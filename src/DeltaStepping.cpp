@@ -31,6 +31,7 @@
 
 #include <climits>
 #include <cfloat>
+#include "/home/dzhang/zsim/misc/hooks/zsim_hooks.h"
 #include "GraphMatRuntime.h"
 
 //typedef unsigned char distance_type;
@@ -124,7 +125,7 @@ bool greater_than_delta(GraphMat::edge_t<int> e, void* param) {
 void run_deltastepping(char* filename, int delta, int source) {
 
   GraphMat::edgelist_t<int> E;
-  GraphMat::load_edgelist<int>(filename, &E);
+  GraphMat::load_edgelist<int>(filename, &E, false, true, true);
 
   auto light_edges = GraphMat::filter_edges(&E, less_than_delta, &delta);
   auto heavy_edges = GraphMat::filter_edges(&E, greater_than_delta, &delta);
@@ -160,9 +161,12 @@ void run_deltastepping(char* filename, int delta, int source) {
 
   gettimeofday(&start, 0);
 
+  uint64_t totalPhases = 0;
+
   do {
 
   //printf("***Running Bucket %d ***\n", deltastep.bid);
+    totalPhases++;
 
     G.setAllActive(); 
     GraphMat::run_graph_program(&deltastep, G, GraphMat::UNTIL_CONVERGENCE, &ds_ts);
@@ -179,6 +183,7 @@ void run_deltastepping(char* filename, int delta, int source) {
 
   gettimeofday(&end, 0);
   printf("Time = %.3f ms \n", (end.tv_sec-start.tv_sec)*1e3+(end.tv_usec-start.tv_usec)*1e-3);
+  printf("\nTotal phases: %d\n\n", totalPhases);
 
   if (GraphMat::get_global_myrank() == 0) printf("Number of buckets processed = %d \n", deltastep.bid);
   GraphMat::graph_program_clear(ds_ts);
